@@ -137,8 +137,8 @@ export class BackupSettingTab extends PluginSettingTab {
 					.addOption("and", "Keep if both conditions met (and)")
 					.addOption("or", "Keep if either condition met (or)")
 					.setValue(this.plugin.settings.retentionMode)
-					.onChange(async (value: "keepLastN" | "keepDays" | "and" | "or") => {
-						this.plugin.settings.retentionMode = value;
+				.onChange(async (value) => {
+					this.plugin.settings.retentionMode = value as "keepLastN" | "keepDays" | "and" | "or";
 						await this.plugin.saveSettings();
 					})
 			);
