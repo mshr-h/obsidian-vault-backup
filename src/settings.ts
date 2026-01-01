@@ -1,36 +1,172 @@
-import {App, PluginSettingTab, Setting} from "obsidian";
-import MyPlugin from "./main";
+import { App, PluginSettingTab, Setting } from "obsidian";
+import type VaultBackupPlugin from "./main";
+import type { BackupSettings } from "./types";
 
-export interface MyPluginSettings {
-	mySetting: string;
-}
+export const DEFAULT_SETTINGS: BackupSettings = {
+	backupFolderPath: "",
+	filenameTemplate: "{{vault}}_{{datetime:YYYY-MM-DD_HHmmss}}",
+	compressionLevel: 6,
+	runOnStartup: false,
+	startupDelayMs: 5000,
+	runOnShutdown: false,
+	retentionKeepLastN: 10,
+	retentionKeepDays: 30,
+	retentionMode: "or",
+};
 
-export const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
+export class BackupSettingTab extends PluginSettingTab {
+	plugin: VaultBackupPlugin;
 
-export class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: VaultBackupPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
 
 	display(): void {
-		const {containerEl} = this;
-
+		const { containerEl } = this;
 		containerEl.empty();
 
+		containerEl.createEl("h2", { text: "Vault Backup Settings" });
+
+		// Backup folder path
 		new Setting(containerEl)
-			.setName('Settings #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
+			.setName("Backup folder path")
+			.setDesc("Local folder where backup ZIP files will be saved")
+			.addText((text) =>
+				text
+					.setPlaceholder("/path/to/backup/folder")
+					.setValue(this.plugin.settings.backupFolderPath)
+					.onChange(async (value) => {
+						this.plugin.settings.backupFolderPath = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		// Filename template
+		new Setting(containerEl)
+			.setName("Filename template")
+			.setDesc(
+				"Template for backup filenames. Variables: {{vault}}, {{date}}, {{time}}, {{datetime}}, {{date:FORMAT}}, {{time:FORMAT}}, {{datetime:FORMAT}}"
+			)
+			.addText((text) =>
+				text
+					.setPlaceholder("{{vault}}_{{datetime:YYYY-MM-DD_HHmmss}}")
+					.setValue(this.plugin.settings.filenameTemplate)
+					.onChange(async (value) => {
+						this.plugin.settings.filenameTemplate = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		// Compression level
+		new Setting(containerEl)
+			.setName("Compression level")
+			.setDesc("ZIP compression level (0 = no compression, 9 = maximum)")
+			.addSlider((slider) =>
+				slider
+					.setLimits(0, 9, 1)
+					.setValue(this.plugin.settings.compressionLevel)
+					.setDynamicTooltip()
+					.onChange(async (value) => {
+						this.plugin.settings.compressionLevel = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		// Startup backup
+		containerEl.createEl("h3", { text: "Automatic Backup" });
+
+		new Setting(containerEl)
+			.setName("Run on startup")
+			.setDesc("Automatically create a backup when Obsidian starts")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.runOnStartup)
+					.onChange(async (value) => {
+						this.plugin.settings.runOnStartup = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Startup delay (ms)")
+			.setDesc("Delay before running startup backup (in milliseconds)")
+			.addText((text) =>
+				text
+					.setPlaceholder("5000")
+					.setValue(String(this.plugin.settings.startupDelayMs))
+					.onChange(async (value) => {
+						const num = parseInt(value, 10);
+						if (!isNaN(num) && num >= 0) {
+							this.plugin.settings.startupDelayMs = num;
+							await this.plugin.saveSettings();
+						}
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Run on shutdown")
+			.setDesc(
+				"Attempt to create a backup when Obsidian closes (best-effort, not guaranteed)"
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.runOnShutdown)
+					.onChange(async (value) => {
+						this.plugin.settings.runOnShutdown = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		// Retention policy
+		containerEl.createEl("h3", { text: "Retention Policy" });
+
+		new Setting(containerEl)
+			.setName("Retention mode")
+			.setDesc("How to apply retention rules")
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption("keepLastN", "Keep last N backups only")
+					.addOption("keepDays", "Keep backups within days only")
+					.addOption("and", "Keep if both conditions met (AND)")
+					.addOption("or", "Keep if either condition met (OR)")
+					.setValue(this.plugin.settings.retentionMode)
+					.onChange(async (value) => {
+						this.plugin.settings.retentionMode = value as any;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Keep last N backups")
+			.setDesc("Number of recent backups to keep (0 = unlimited)")
+			.addText((text) =>
+				text
+					.setPlaceholder("10")
+					.setValue(String(this.plugin.settings.retentionKeepLastN))
+					.onChange(async (value) => {
+						const num = parseInt(value, 10);
+						if (!isNaN(num) && num >= 0) {
+							this.plugin.settings.retentionKeepLastN = num;
+							await this.plugin.saveSettings();
+						}
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Keep backups within days")
+			.setDesc("Keep backups created within this many days (0 = unlimited)")
+			.addText((text) =>
+				text
+					.setPlaceholder("30")
+					.setValue(String(this.plugin.settings.retentionKeepDays))
+					.onChange(async (value) => {
+						const num = parseInt(value, 10);
+						if (!isNaN(num) && num >= 0) {
+							this.plugin.settings.retentionKeepDays = num;
+							await this.plugin.saveSettings();
+						}
+					})
+			);
 	}
 }

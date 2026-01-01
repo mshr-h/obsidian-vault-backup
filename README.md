@@ -1,90 +1,161 @@
-# Obsidian Sample Plugin
+# Obsidian Vault Backup
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+A local backup plugin for Obsidian that creates ZIP archives of your entire vault with automatic retention management.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+## Features
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+- **Manual & Automatic Backups**: Create backups on-demand, on startup, or on shutdown
+- **Atomic ZIP Creation**: Uses temporary files with atomic rename to ensure backup integrity
+- **Flexible File Naming**: Template-based filename generation with date/time variables
+- **Retention Management**: Automatically manage old backups with configurable policies
+- **Hidden Files Support**: Includes all files in your vault, including dotfiles
+- **Desktop Only**: Optimized for desktop environments (macOS, Windows, Linux)
 
-## First time developing plugins?
+### Commands
 
-Quick starting guide for new plugin devs:
+- **Create backup now**: Manually trigger a backup (also available via ribbon icon)
+- **Open backup folder**: Open the backup destination folder in your file manager
+- **Show backup list**: View all existing backups matching your filename template
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+### Filename Template Variables
 
-## Releasing new releases
+Use the following variables in your filename template:
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+- `{{vault}}`: Vault name (sanitized for filesystem)
+- `{{date}}`: Current date (default: YYYY-MM-DD)
+- `{{date:FORMAT}}`: Custom date format
+- `{{time}}`: Current time (default: HHmmss)
+- `{{time:FORMAT}}`: Custom time format
+- `{{datetime}}`: Date and time (default: YYYY-MM-DD_HHmmss)
+- `{{datetime:FORMAT}}`: Custom datetime format
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+Example: `{{vault}}_{{datetime:YYYY-MM-DD_HHmmss}}` → `MyVault_2026-01-01_203015.zip`
 
-## Adding your plugin to the community plugin list
+### Retention Policy Modes
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+Configure how old backups are managed:
 
-## How to use
+- **Keep last N backups only**: Retain only the most recent N backups
+- **Keep backups within days only**: Keep backups created within the specified number of days
+- **Keep if both conditions met (AND)**: Backup must satisfy both conditions
+- **Keep if either condition met (OR)**: Backup satisfies at least one condition
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+Set either value to 0 for unlimited retention in that dimension.
 
-## Manually installing the plugin
+## Configuration
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+Access settings via **Settings → Plugin Options → Vault Backup**:
 
-## Improve code quality with eslint
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
+- **Backup folder path**: Local directory where ZIP files will be saved
+- **Filename template**: Pattern for backup filenames (see variables above)
+- **Compression level**: ZIP compression (0 = none, 9 = maximum)
+- **Run on startup**: Automatically backup when Obsidian starts
+- **Startup delay**: Milliseconds to wait before startup backup
+- **Run on shutdown**: Best-effort backup when Obsidian closes
+- **Retention mode**: How to apply retention rules
+- **Keep last N backups**: Number of recent backups to preserve
+- **Keep backups within days**: Age threshold for backups
 
-## Funding URL
+## Installation
 
-You can include funding URLs where people who use your plugin can financially support it.
+### Manual Installation
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+1. Download the latest release files (`main.js`, `manifest.json`, `styles.css`)
+2. Create a folder: `<vault>/.obsidian/plugins/vault-backup/`
+3. Copy the downloaded files into this folder
+4. Reload Obsidian
+5. Enable "Vault Backup" in Settings → Community plugins
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
+### From Source
+
+1. Clone this repository
+2. Run `npm install` to install dependencies
+3. Run `npm run build` to compile
+4. Copy `main.js`, `manifest.json`, and `styles.css` to your vault's plugin folder
+5. Reload Obsidian and enable the plugin
+
+## Development
+
+### Prerequisites
+
+- Node.js v16 or higher
+- npm or yarn
+
+### Setup
+
+```bash
+# Install dependencies
+npm install
+
+# Development mode (watch for changes)
+npm run dev
+
+# Production build
+npm run build
+
+# Lint code
+npm run lint
 ```
 
-If you have multiple URLs, you can also do:
+### Project Structure
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
+```
+src/
+  main.ts              # Plugin entry point and lifecycle
+  settings.ts          # Settings interface and UI
+  types.ts             # TypeScript type definitions
+  backup.ts            # Backup execution and concurrency control
+  zip.ts               # ZIP file creation with atomic operations
+  template.ts          # Filename template parsing
+  retention.ts         # Backup retention management
+  ui/
+    backup-list-modal.ts  # Backup list UI
 ```
 
-## API Documentation
+## How It Works
 
-See https://docs.obsidian.md
+### Atomic Backup Process
+
+1. **Temporary file creation**: Creates `<filename>.tmp.<random>` in the backup folder
+2. **ZIP generation**: Streams all vault files into the temporary archive
+3. **Atomic rename**: Renames temp file to final `.zip` filename
+4. **Retention cleanup**: Removes old backups according to retention policy
+
+This approach ensures backups are never corrupted, even if the process is interrupted.
+
+### Concurrency Control
+
+Only one backup can run at a time. If a backup is already in progress, additional requests are rejected with a notice.
+
+### Startup/Shutdown Behavior
+
+- **Startup backup**: Runs after a configurable delay to avoid interfering with vault loading
+- **Shutdown backup**: Best-effort only; may not complete if Obsidian is force-quit or crashes
+
+## Privacy & Security
+
+- **100% Local**: All backups are stored locally; no data is sent to external services
+- **No Telemetry**: No analytics or tracking
+- **Desktop Only**: Requires filesystem access (not compatible with mobile)
+
+## Troubleshooting
+
+### Backup fails with "input source must be valid"
+
+Ensure the vault path exists and is accessible. Check the developer console (Cmd+Opt+I / Ctrl+Shift+I) for detailed error messages.
+
+### Temp files left in backup folder
+
+If temp files (`.tmp.*`) remain after a failed backup, they can be safely deleted manually.
+
+### Old backups not being deleted
+
+Verify your retention settings and ensure the filename template matches existing backup files.
+
+## License
+
+This plugin is licensed under the 0-BSD License.
+
+## Support
+
+If you find this plugin useful, consider supporting its development.
