@@ -20,19 +20,19 @@ export function parseTemplate(template: string, vaultName: string): string {
 	result = result.replace(/\{\{vault\}\}/g, sanitizeFilename(vaultName));
 
 	// Replace {{datetime:FORMAT}} and {{datetime}}
-	result = result.replace(/\{\{datetime:([^}]+)\}\}/g, (_, format) => {
+	result = result.replace(/\{\{datetime:([^}]+)\}\}/g, (_: string, format: string) => {
 		return now.format(format);
 	});
 	result = result.replace(/\{\{datetime\}\}/g, now.format("YYYY-MM-DD_HHmmss"));
 
 	// Replace {{date:FORMAT}} and {{date}}
-	result = result.replace(/\{\{date:([^}]+)\}\}/g, (_, format) => {
+	result = result.replace(/\{\{date:([^}]+)\}\}/g, (_: string, format: string) => {
 		return now.format(format);
 	});
 	result = result.replace(/\{\{date\}\}/g, now.format("YYYY-MM-DD"));
 
 	// Replace {{time:FORMAT}} and {{time}}
-	result = result.replace(/\{\{time:([^}]+)\}\}/g, (_, format) => {
+	result = result.replace(/\{\{time:([^}]+)\}\}/g, (_: string, format: string) => {
 		return now.format(format);
 	});
 	result = result.replace(/\{\{time\}\}/g, now.format("HHmmss"));

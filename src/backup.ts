@@ -61,7 +61,7 @@ export class BackupManager {
 			);
 
 			if (deletedCount > 0) {
-				console.log(`Deleted ${deletedCount} old backup(s)`);
+				console.error(`Deleted ${deletedCount} old backup(s)`);
 			}
 
 			return backupPath;

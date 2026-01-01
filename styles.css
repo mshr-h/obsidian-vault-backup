@@ -6,3 +6,25 @@ available in the app when your plugin is enabled.
 If your plugin does not need CSS, delete this file.
 
 */
+
+.backup-list-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-top: 1em;
+}
+
+.backup-list-table th,
+.backup-list-table td {
+	padding: 0.5em;
+	text-align: left;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.backup-list-table th {
+	font-weight: bold;
+	background-color: var(--background-secondary);
+}
+
+.backup-list-table tr:hover {
+	background-color: var(--background-modifier-hover);
+}

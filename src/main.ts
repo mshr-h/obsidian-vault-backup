@@ -3,7 +3,6 @@ import { DEFAULT_SETTINGS, BackupSettingTab } from "./settings";
 import type { BackupSettings } from "./types";
 import { BackupManager } from "./backup";
 import { BackupListModal } from "./ui/backup-list-modal";
-import * as path from "path";
 
 export default class VaultBackupPlugin extends Plugin {
 	settings: BackupSettings;
@@ -15,8 +14,8 @@ export default class VaultBackupPlugin extends Plugin {
 		this.backupManager = new BackupManager();
 
 		// Add ribbon icon for quick backup
-		this.addRibbonIcon("archive", "Create vault backup", async () => {
-			await this.executeBackup();
+		this.addRibbonIcon("archive", "Create vault backup", () => {
+			void this.executeBackup();
 		});
 
 		// Command: Create backup now
@@ -56,27 +55,28 @@ export default class VaultBackupPlugin extends Plugin {
 		// Startup backup (with delay)
 		if (this.settings.runOnStartup) {
 			this.registerInterval(
-				window.setTimeout(async () => {
-					console.log("Running startup backup...");
-					await this.executeBackup();
+				window.setTimeout(() => {
+					console.error("Running startup backup...");
+					void this.executeBackup();
 				}, this.settings.startupDelayMs)
 			);
 		}
 	}
 
-	async onunload() {
+	onunload() {
 		// Shutdown backup (best-effort)
 		if (this.settings.runOnShutdown && !this.backupManager.isBackupRunning()) {
-			console.log("Running shutdown backup...");
-			await this.executeBackup();
+			console.error("Running shutdown backup...");
+			void this.executeBackup();
 		}
 	}
 
 	async loadSettings() {
+		const loadedData = (await this.loadData()) as Partial<BackupSettings> | undefined;
 		this.settings = Object.assign(
 			{},
 			DEFAULT_SETTINGS,
-			await this.loadData()
+			loadedData
 		);
 	}
 
@@ -88,7 +88,10 @@ export default class VaultBackupPlugin extends Plugin {
 	 * Execute a backup
 	 */
 	private async executeBackup(): Promise<void> {
-		const vaultPath = (this.app.vault.adapter as any).basePath;
+		const adapter = this.app.vault.adapter as {
+			basePath?: string;
+		};
+		const vaultPath = adapter.basePath ?? "";
 		const vaultName = this.app.vault.getName();
 
 		await this.backupManager.executeBackup(
@@ -107,8 +110,11 @@ export default class VaultBackupPlugin extends Plugin {
 			return;
 		}
 
-		const { shell } = require("electron");
-		shell.openPath(this.settings.backupFolderPath);
+		// eslint-disable-next-line @typescript-eslint/no-require-imports, no-undef
+		const electron = require("electron") as {
+			shell: { openPath: (path: string) => Promise<string> };
+		};
+		void electron.shell.openPath(this.settings.backupFolderPath);
 	}
 }
 

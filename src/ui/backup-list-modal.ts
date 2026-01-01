@@ -1,5 +1,4 @@
 import { Modal, App } from "obsidian";
-import type { BackupInfo } from "../types";
 import { listBackupFiles } from "../retention";
 
 export class BackupListModal extends Modal {
@@ -16,7 +15,7 @@ export class BackupListModal extends Modal {
 		const { contentEl } = this;
 		contentEl.empty();
 
-		contentEl.createEl("h2", { text: "Backup Files" });
+		contentEl.createEl("h2", { text: "Backup files" });
 
 		const backups = listBackupFiles(this.backupFolderPath, this.template);
 
@@ -54,33 +53,6 @@ export class BackupListModal extends Modal {
 			row.createEl("td", { text: date.toLocaleString() });
 		}
 
-		// Add some styling
-		contentEl.createEl("style", {
-			text: `
-				.backup-list-table {
-					width: 100%;
-					border-collapse: collapse;
-					margin-top: 1em;
-				}
-				.backup-list-table th,
-				.backup-list-table td {
-					padding: 0.5em;
-					text-align: left;
-					border-bottom: 1px solid var(--background-modifier-border);
-				}
-				.backup-list-table th {
-					font-weight: bold;
-					background-color: var(--background-secondary);
-				}
-				.backup-list-table tr:hover {
-					background-color: var(--background-modifier-hover);
-				}
-			`,
-		});
-	}
-
-	onClose() {
-		const { contentEl } = this;
 		contentEl.empty();
 	}
 }

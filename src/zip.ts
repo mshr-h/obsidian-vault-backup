@@ -100,7 +100,7 @@ export async function createZipBackup(
 			});
 			
 			// This triggers the 'close' event on output stream when done
-			archive.finalize();
+			void archive.finalize();
 		});
 
 		// Atomic rename: move temp file to final location

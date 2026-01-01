@@ -26,12 +26,14 @@ export class BackupSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		containerEl.createEl("h2", { text: "Vault Backup Settings" });
+		new Setting(containerEl)
+			.setName("Backup")
+			.setHeading();
 
 		// Backup folder path
 		new Setting(containerEl)
 			.setName("Backup folder path")
-			.setDesc("Local folder where backup ZIP files will be saved")
+			.setDesc("Local folder where backup zip files will be saved")
 			.addText((text) =>
 				text
 					.setPlaceholder("/path/to/backup/folder")
@@ -61,7 +63,7 @@ export class BackupSettingTab extends PluginSettingTab {
 		// Compression level
 		new Setting(containerEl)
 			.setName("Compression level")
-			.setDesc("ZIP compression level (0 = no compression, 9 = maximum)")
+			.setDesc("Zip compression level (0 = no compression, 9 = maximum)")
 			.addSlider((slider) =>
 				slider
 					.setLimits(0, 9, 1)
@@ -74,7 +76,9 @@ export class BackupSettingTab extends PluginSettingTab {
 			);
 
 		// Startup backup
-		containerEl.createEl("h3", { text: "Automatic Backup" });
+		new Setting(containerEl)
+			.setName("Automatic backup")
+			.setHeading();
 
 		new Setting(containerEl)
 			.setName("Run on startup")
@@ -119,26 +123,28 @@ export class BackupSettingTab extends PluginSettingTab {
 			);
 
 		// Retention policy
-		containerEl.createEl("h3", { text: "Retention Policy" });
+		new Setting(containerEl)
+			.setName("Retention policy")
+			.setHeading();
 
 		new Setting(containerEl)
 			.setName("Retention mode")
 			.setDesc("How to apply retention rules")
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption("keepLastN", "Keep last N backups only")
+					.addOption("keepLastN", "Keep last n backups only")
 					.addOption("keepDays", "Keep backups within days only")
-					.addOption("and", "Keep if both conditions met (AND)")
-					.addOption("or", "Keep if either condition met (OR)")
+					.addOption("and", "Keep if both conditions met (and)")
+					.addOption("or", "Keep if either condition met (or)")
 					.setValue(this.plugin.settings.retentionMode)
-					.onChange(async (value) => {
-						this.plugin.settings.retentionMode = value as any;
+					.onChange(async (value: "keepLastN" | "keepDays" | "and" | "or") => {
+						this.plugin.settings.retentionMode = value;
 						await this.plugin.saveSettings();
 					})
 			);
 
 		new Setting(containerEl)
-			.setName("Keep last N backups")
+			.setName("Keep last n backups")
 			.setDesc("Number of recent backups to keep (0 = unlimited)")
 			.addText((text) =>
 				text
