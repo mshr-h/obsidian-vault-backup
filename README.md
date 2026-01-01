@@ -95,6 +95,9 @@ npm run build
 
 # Lint code
 npm run lint
+
+# Bump version and release it to github
+make release VERSION=0.1.0
 ```
 
 ### Project Structure
