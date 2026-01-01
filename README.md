@@ -14,7 +14,6 @@ A local backup plugin for Obsidian that creates ZIP archives of your entire vaul
 ### Commands
 
 - **Create backup now**: Manually trigger a backup (also available via ribbon icon)
-- **Open backup folder**: Open the backup destination folder in your file manager
 - **Show backup list**: View all existing backups matching your filename template
 
 ### Filename Template Variables

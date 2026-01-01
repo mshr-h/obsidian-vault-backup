@@ -27,15 +27,6 @@ export default class VaultBackupPlugin extends Plugin {
 			},
 		});
 
-		// Command: Open backup folder
-		this.addCommand({
-			id: "open-backup-folder",
-			name: "Open backup folder",
-			callback: () => {
-				this.openBackupFolder();
-			},
-		});
-
 		// Command: Show backup list
 		this.addCommand({
 			id: "show-backup-list",
@@ -101,20 +92,5 @@ export default class VaultBackupPlugin extends Plugin {
 		);
 	}
 
-	/**
-	 * Open the backup folder in the system file manager
-	 */
-	private openBackupFolder(): void {
-		if (!this.settings.backupFolderPath) {
-			new Notice("Backup folder path is not configured");
-			return;
-		}
-
-		// eslint-disable-next-line @typescript-eslint/no-require-imports, no-undef
-		const electron = require("electron") as {
-			shell: { openPath: (path: string) => Promise<string> };
-		};
-		void electron.shell.openPath(this.settings.backupFolderPath);
-	}
 }
 

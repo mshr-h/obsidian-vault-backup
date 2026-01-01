@@ -52,7 +52,5 @@ export class BackupListModal extends Modal {
 			const date = new Date(backup.created);
 			row.createEl("td", { text: date.toLocaleString() });
 		}
-
-		contentEl.empty();
 	}
 }
