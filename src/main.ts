@@ -1,4 +1,4 @@
-import { Notice, Plugin } from "obsidian";
+import {  Plugin } from "obsidian";
 import { DEFAULT_SETTINGS, BackupSettingTab } from "./settings";
 import type { BackupSettings } from "./types";
 import { BackupManager } from "./backup";
