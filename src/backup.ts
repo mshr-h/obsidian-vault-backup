@@ -1,6 +1,7 @@
 import { Notice } from "obsidian";
 import * as path from "path";
 import type { BackupSettings } from "./types";
+import { getBackupFolderPath, getCurrentOsLabel } from "./types";
 import { parseTemplate } from "./template";
 import { createZipBackup } from "./zip";
 import { applyRetentionPolicy } from "./retention";
@@ -30,8 +31,9 @@ export class BackupManager {
 		}
 
 		// Validate backup folder path
-		if (!settings.backupFolderPath) {
-			new Notice("Backup folder path is not configured");
+		const backupFolderPath = getBackupFolderPath(settings);
+		if (!backupFolderPath) {
+			new Notice(`Backup folder path for ${getCurrentOsLabel()} is not configured`);
 			return null;
 		}
 
@@ -42,7 +44,7 @@ export class BackupManager {
 
 			// Generate filename from template
 			const filename = parseTemplate(settings.filenameTemplate, vaultName);
-			const outputPath = path.join(settings.backupFolderPath, filename);
+			const outputPath = path.join(backupFolderPath, filename);
 
 			// Create ZIP backup
 			const backupPath = await createZipBackup(
@@ -55,7 +57,7 @@ export class BackupManager {
 
 			// Apply retention policy
 			const deletedCount = applyRetentionPolicy(
-				settings.backupFolderPath,
+				backupFolderPath,
 				settings.filenameTemplate,
 				settings
 			);

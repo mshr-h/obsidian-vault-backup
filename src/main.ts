@@ -1,6 +1,7 @@
-import {  Plugin } from "obsidian";
+import { Platform, Plugin } from "obsidian";
 import { DEFAULT_SETTINGS, BackupSettingTab } from "./settings";
 import type { BackupSettings } from "./types";
+import { getBackupFolderPath } from "./types";
 import { BackupManager } from "./backup";
 import { BackupListModal } from "./ui/backup-list-modal";
 
@@ -34,7 +35,7 @@ export default class VaultBackupPlugin extends Plugin {
 			callback: () => {
 				new BackupListModal(
 					this.app,
-					this.settings.backupFolderPath,
+					getBackupFolderPath(this.settings),
 					this.settings.filenameTemplate
 				).open();
 			},
@@ -63,12 +64,27 @@ export default class VaultBackupPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		const loadedData = (await this.loadData()) as Partial<BackupSettings> | undefined;
+		const loadedData = (await this.loadData()) as Partial<BackupSettings & { backupFolderPath?: string }> | undefined;
 		this.settings = Object.assign(
 			{},
 			DEFAULT_SETTINGS,
 			loadedData
 		);
+
+		// Migration: if old backupFolderPath exists and new OS-specific fields are empty,
+		// copy the old path to the appropriate OS-specific field
+		if (
+			loadedData?.backupFolderPath &&
+			!loadedData.backupFolderPathWindows &&
+			!loadedData.backupFolderPathUnix
+		) {
+			if (Platform.isWin) {
+				this.settings.backupFolderPathWindows = loadedData.backupFolderPath;
+			} else {
+				this.settings.backupFolderPathUnix = loadedData.backupFolderPath;
+			}
+			await this.saveSettings();
+		}
 	}
 
 	async saveSettings() {

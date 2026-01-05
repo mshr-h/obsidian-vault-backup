@@ -1,9 +1,10 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, Platform, PluginSettingTab, Setting } from "obsidian";
 import type VaultBackupPlugin from "./main";
 import type { BackupSettings } from "./types";
 
 export const DEFAULT_SETTINGS: BackupSettings = {
-	backupFolderPath: "",
+	backupFolderPathWindows: "",
+	backupFolderPathUnix: "",
 	filenameTemplate: "{{vault}}_{{datetime:YYYY-MM-DD_HHmmss}}",
 	compressionLevel: 6,
 	runOnStartup: false,
@@ -30,16 +31,30 @@ export class BackupSettingTab extends PluginSettingTab {
 			.setName("Backup")
 			.setHeading();
 
-		// Backup folder path
+		// Backup folder path (Windows)
 		new Setting(containerEl)
-			.setName("Backup folder path")
-			.setDesc("Local folder where backup zip files will be saved")
+			.setName(`Backup folder path (Windows)${Platform.isWin ? " (current)" : ""}`)
+			.setDesc("Local folder where backup zip files will be saved on Windows")
 			.addText((text) =>
 				text
-					.setPlaceholder("/path/to/backup/folder")
-					.setValue(this.plugin.settings.backupFolderPath)
+					.setPlaceholder("C:\\Users\\username\\Backups")
+					.setValue(this.plugin.settings.backupFolderPathWindows)
 					.onChange(async (value) => {
-						this.plugin.settings.backupFolderPath = value;
+						this.plugin.settings.backupFolderPathWindows = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		// Backup folder path (Unix)
+		new Setting(containerEl)
+			.setName(`Backup folder path (Unix)${!Platform.isWin ? " (current)" : ""}`)
+			.setDesc("Local folder where backup zip files will be saved on macOS/Linux")
+			.addText((text) =>
+				text
+					.setPlaceholder("/home/username/Backups")
+					.setValue(this.plugin.settings.backupFolderPathUnix)
+					.onChange(async (value) => {
+						this.plugin.settings.backupFolderPathUnix = value;
 						await this.plugin.saveSettings();
 					})
 			);
