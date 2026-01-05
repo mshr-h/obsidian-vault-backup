@@ -37,7 +37,7 @@ export class BackupSettingTab extends PluginSettingTab {
 			.setDesc("Local folder where backup zip files will be saved on Windows")
 			.addText((text) =>
 				text
-					.setPlaceholder("C:\\Users\\username\\Backups")
+					.setPlaceholder("C:\\users\\username\\backups")
 					.setValue(this.plugin.settings.backupFolderPathWindows)
 					.onChange(async (value) => {
 						this.plugin.settings.backupFolderPathWindows = value;
@@ -51,7 +51,7 @@ export class BackupSettingTab extends PluginSettingTab {
 			.setDesc("Local folder where backup zip files will be saved on macOS/Linux")
 			.addText((text) =>
 				text
-					.setPlaceholder("/home/username/Backups")
+					.setPlaceholder("/home/username/backups")
 					.setValue(this.plugin.settings.backupFolderPathUnix)
 					.onChange(async (value) => {
 						this.plugin.settings.backupFolderPathUnix = value;
