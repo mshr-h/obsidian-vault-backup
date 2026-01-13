@@ -156,7 +156,7 @@ Verify your retention settings and ensure the filename template matches existing
 
 ## License
 
-This plugin is licensed under the 0-BSD License.
+This plugin is licensed under the Apache-2.0 License.
 
 ## Support
 
