@@ -5,8 +5,10 @@ A local backup plugin for Obsidian that creates ZIP archives of your entire vaul
 ## Features
 
 - **Manual & Automatic Backups**: Create backups on-demand, on startup, or on shutdown
+- **Backup Profiles**: Save multiple backup configurations and choose a profile per device
 - **Atomic ZIP Creation**: Uses temporary files with atomic rename to ensure backup integrity
 - **Flexible File Naming**: Template-based filename generation with date/time variables
+- **Configurable Exclusions**: Skip selected vault-relative files and folders
 - **Retention Management**: Automatically manage old backups with configurable policies
 - **Hidden Files Support**: Includes all files in your vault, including dotfiles
 - **Desktop Only**: Optimized for desktop environments (macOS, Windows, Linux)
@@ -41,13 +43,21 @@ Configure how old backups are managed:
 
 Set either value to 0 for unlimited retention in that dimension.
 
+### Backup Profiles
+
+Backup profiles let you save multiple complete backup configurations. Each profile includes the backup folder paths, filename template, compression level, excluded paths, automatic backup settings, and retention policy.
+
+The selected profile is saved per device using the device name, so a synced vault can use different backup settings on each desktop.
+
 ## Configuration
 
 Access settings via **Settings → Plugin Options → Vault Backup**:
 
+- **Backup profiles**: Create, duplicate, rename, delete, and select the backup profile used on the current device
 - **Backup folder path**: Local directory where ZIP files will be saved
 - **Filename template**: Pattern for backup filenames (see variables above)
 - **Compression level**: ZIP compression (0 = none, 9 = maximum)
+- **Excluded paths**: Vault-relative files or folders to skip, one path per line
 - **Run on startup**: Automatically backup when Obsidian starts
 - **Startup delay**: Milliseconds to wait before startup backup
 - **Run on shutdown**: Best-effort backup when Obsidian closes
@@ -119,11 +129,15 @@ src/
 ### Atomic Backup Process
 
 1. **Temporary file creation**: Creates `<filename>.tmp.<random>` in the backup folder
-2. **ZIP generation**: Streams all vault files into the temporary archive
+2. **ZIP generation**: Streams vault files into the temporary archive, skipping excluded paths
 3. **Atomic rename**: Renames temp file to final `.zip` filename
 4. **Retention cleanup**: Removes old backups according to retention policy
 
 This approach ensures backups are never corrupted, even if the process is interrupted.
+
+### Excluded Paths
+
+Excluded paths are matched relative to the vault root. Enter one file or folder per line in settings. For example, `private.md` excludes only that file, while `attachments` excludes the folder and everything inside it. Leading slashes, trailing slashes, and Windows backslashes are normalized automatically. Glob patterns and regular expressions are not supported.
 
 ### Concurrency Control
 

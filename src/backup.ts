@@ -50,7 +50,8 @@ export class BackupManager {
 			const backupPath = await createZipBackup(
 				vaultPath,
 				outputPath,
-				settings.compressionLevel
+				settings.compressionLevel,
+				settings.excludedPaths
 			);
 
 			new Notice(`Backup completed: ${path.basename(backupPath)}`);

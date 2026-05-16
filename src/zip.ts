@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import archiver from "archiver";
+import { isPathExcluded, normalizeExcludedPaths } from "./exclusions";
 
 /**
  * Generate a random suffix for temporary files
@@ -15,18 +16,23 @@ function generateRandomSuffix(): string {
 function addFilesToArchive(
 	archive: archiver.Archiver,
 	dirPath: string,
-	basePath: string
+	basePath: string,
+	excludedPaths: string[]
 ): void {
 	const entries = fs.readdirSync(dirPath, { withFileTypes: true });
 
 	for (const entry of entries) {
 		const fullPath = path.join(dirPath, entry.name);
-		const relativePath = path.relative(basePath, fullPath);
+		const relativePath = path.relative(basePath, fullPath).replace(/\\/g, "/");
+
+		if (isPathExcluded(relativePath, excludedPaths)) {
+			continue;
+		}
 
 		try {
 			if (entry.isDirectory()) {
 				// Recursively add subdirectory
-				addFilesToArchive(archive, fullPath, basePath);
+				addFilesToArchive(archive, fullPath, basePath, excludedPaths);
 			} else if (entry.isFile()) {
 				// Add file to archive using stream
 				const fileStream = fs.createReadStream(fullPath);
@@ -48,10 +54,12 @@ function addFilesToArchive(
 export async function createZipBackup(
 	vaultPath: string,
 	outputPath: string,
-	compressionLevel: number
+	compressionLevel: number,
+	excludedPaths: string[] = []
 ): Promise<string> {
 	const finalPath = `${outputPath}.zip`;
 	const tempPath = `${outputPath}.tmp.${generateRandomSuffix()}`;
+	const normalizedExcludedPaths = normalizeExcludedPaths(excludedPaths);
 
 	// Validate vault path exists
 	if (!fs.existsSync(vaultPath)) {
@@ -75,7 +83,7 @@ export async function createZipBackup(
 		archive.pipe(output);
 
 		// Add all files from vault directory (including hidden files)
-		addFilesToArchive(archive, vaultPath, vaultPath);
+		addFilesToArchive(archive, vaultPath, vaultPath, normalizedExcludedPaths);
 
 		// Finalize the archive and wait for both archive finalization and stream close
 		await new Promise<void>((resolve, reject) => {

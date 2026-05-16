@@ -1,6 +1,7 @@
-import { App, Platform, PluginSettingTab, Setting } from "obsidian";
+import { App, Notice, Platform, PluginSettingTab, Setting } from "obsidian";
 import type VaultBackupPlugin from "./main";
 import type { BackupSettings } from "./types";
+import { normalizeExcludedPaths } from "./exclusions";
 
 export const DEFAULT_SETTINGS: BackupSettings = {
 	backupFolderPathWindows: "",
@@ -10,6 +11,7 @@ export const DEFAULT_SETTINGS: BackupSettings = {
 	runOnStartup: false,
 	startupDelayMs: 5000,
 	runOnShutdown: false,
+	excludedPaths: [],
 	retentionKeepLastN: 10,
 	retentionKeepDays: 30,
 	retentionMode: "or",
@@ -26,6 +28,72 @@ export class BackupSettingTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
+		const activeProfile = this.plugin.getActiveProfile();
+		const settings = activeProfile.settings;
+
+		new Setting(containerEl)
+			.setName("Backup profiles")
+			.setHeading();
+
+		new Setting(containerEl)
+			.setName("Profile for this device")
+			.setDesc(`Current device: ${this.plugin.deviceName}. Changing this saves the selected profile for this device.`)
+			.addDropdown((dropdown) => {
+				for (const profile of this.plugin.data.profiles) {
+					dropdown.addOption(profile.id, profile.name);
+				}
+
+				dropdown
+					.setValue(activeProfile.id)
+					.onChange(async (value) => {
+						await this.plugin.setActiveProfileForCurrentDevice(value);
+						this.display();
+					});
+			});
+
+		new Setting(containerEl)
+			.setName("Profile name")
+			.setDesc("Rename the selected backup profile")
+			.addText((text) =>
+				text
+					.setPlaceholder("Default")
+					.setValue(activeProfile.name)
+					.onChange(async (value) => {
+						await this.plugin.renameProfile(activeProfile.id, value);
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Manage profiles")
+			.setDesc("Create, duplicate, or delete backup profiles")
+			.addButton((button) =>
+				button
+					.setButtonText("New")
+					.onClick(async () => {
+						await this.plugin.createProfile();
+						this.display();
+					})
+			)
+			.addButton((button) =>
+				button
+					.setButtonText("Duplicate")
+					.onClick(async () => {
+						await this.plugin.duplicateActiveProfile();
+						this.display();
+					})
+			)
+			.addButton((button) =>
+				button
+					.setButtonText("Delete")
+					.setWarning()
+					.onClick(async () => {
+						const deleted = await this.plugin.deleteProfile(activeProfile.id);
+						if (!deleted) {
+							new Notice("At least one backup profile is required");
+						}
+						this.display();
+					})
+			);
 
 		new Setting(containerEl)
 			.setName("Backup")
@@ -38,9 +106,9 @@ export class BackupSettingTab extends PluginSettingTab {
 			.addText((text) =>
 				text
 					.setPlaceholder("C:\\users\\username\\backups")
-					.setValue(this.plugin.settings.backupFolderPathWindows)
+					.setValue(settings.backupFolderPathWindows)
 					.onChange(async (value) => {
-						this.plugin.settings.backupFolderPathWindows = value;
+						settings.backupFolderPathWindows = value;
 						await this.plugin.saveSettings();
 					})
 			);
@@ -52,9 +120,9 @@ export class BackupSettingTab extends PluginSettingTab {
 			.addText((text) =>
 				text
 					.setPlaceholder("/home/username/backups")
-					.setValue(this.plugin.settings.backupFolderPathUnix)
+					.setValue(settings.backupFolderPathUnix)
 					.onChange(async (value) => {
-						this.plugin.settings.backupFolderPathUnix = value;
+						settings.backupFolderPathUnix = value;
 						await this.plugin.saveSettings();
 					})
 			);
@@ -68,9 +136,9 @@ export class BackupSettingTab extends PluginSettingTab {
 			.addText((text) =>
 				text
 					.setPlaceholder("{{vault}}_{{datetime:YYYY-MM-DD_HHmmss}}")
-					.setValue(this.plugin.settings.filenameTemplate)
+					.setValue(settings.filenameTemplate)
 					.onChange(async (value) => {
-						this.plugin.settings.filenameTemplate = value;
+						settings.filenameTemplate = value;
 						await this.plugin.saveSettings();
 					})
 			);
@@ -82,13 +150,29 @@ export class BackupSettingTab extends PluginSettingTab {
 			.addSlider((slider) =>
 				slider
 					.setLimits(0, 9, 1)
-					.setValue(this.plugin.settings.compressionLevel)
+					.setValue(settings.compressionLevel)
 					.setDynamicTooltip()
 					.onChange(async (value) => {
-						this.plugin.settings.compressionLevel = value;
+						settings.compressionLevel = value;
 						await this.plugin.saveSettings();
 					})
 			);
+
+		new Setting(containerEl)
+			.setName("Excluded paths")
+			.setDesc("Vault-relative files or folders to skip, one path per line")
+			.addTextArea((text) => {
+				text.inputEl.rows = 5;
+				text
+					.setPlaceholder("attachments\nprivate.md\ndaily-notes/archive")
+					.setValue(settings.excludedPaths.join("\n"))
+					.onChange(async (value) => {
+						settings.excludedPaths = normalizeExcludedPaths(
+							value.split(/\r?\n/)
+						);
+						await this.plugin.saveSettings();
+					});
+			});
 
 		// Startup backup
 		new Setting(containerEl)
@@ -100,9 +184,9 @@ export class BackupSettingTab extends PluginSettingTab {
 			.setDesc("Automatically create a backup when Obsidian starts")
 			.addToggle((toggle) =>
 				toggle
-					.setValue(this.plugin.settings.runOnStartup)
+					.setValue(settings.runOnStartup)
 					.onChange(async (value) => {
-						this.plugin.settings.runOnStartup = value;
+						settings.runOnStartup = value;
 						await this.plugin.saveSettings();
 					})
 			);
@@ -113,11 +197,11 @@ export class BackupSettingTab extends PluginSettingTab {
 			.addText((text) =>
 				text
 					.setPlaceholder("5000")
-					.setValue(String(this.plugin.settings.startupDelayMs))
+					.setValue(String(settings.startupDelayMs))
 					.onChange(async (value) => {
 						const num = parseInt(value, 10);
 						if (!isNaN(num) && num >= 0) {
-							this.plugin.settings.startupDelayMs = num;
+							settings.startupDelayMs = num;
 							await this.plugin.saveSettings();
 						}
 					})
@@ -130,9 +214,9 @@ export class BackupSettingTab extends PluginSettingTab {
 			)
 			.addToggle((toggle) =>
 				toggle
-					.setValue(this.plugin.settings.runOnShutdown)
+					.setValue(settings.runOnShutdown)
 					.onChange(async (value) => {
-						this.plugin.settings.runOnShutdown = value;
+						settings.runOnShutdown = value;
 						await this.plugin.saveSettings();
 					})
 			);
@@ -151,9 +235,9 @@ export class BackupSettingTab extends PluginSettingTab {
 					.addOption("keepDays", "Keep backups within days only")
 					.addOption("and", "Keep if both conditions met (and)")
 					.addOption("or", "Keep if either condition met (or)")
-					.setValue(this.plugin.settings.retentionMode)
-				.onChange(async (value) => {
-					this.plugin.settings.retentionMode = value as "keepLastN" | "keepDays" | "and" | "or";
+					.setValue(settings.retentionMode)
+					.onChange(async (value) => {
+						settings.retentionMode = value as "keepLastN" | "keepDays" | "and" | "or";
 						await this.plugin.saveSettings();
 					})
 			);
@@ -164,11 +248,11 @@ export class BackupSettingTab extends PluginSettingTab {
 			.addText((text) =>
 				text
 					.setPlaceholder("10")
-					.setValue(String(this.plugin.settings.retentionKeepLastN))
+					.setValue(String(settings.retentionKeepLastN))
 					.onChange(async (value) => {
 						const num = parseInt(value, 10);
 						if (!isNaN(num) && num >= 0) {
-							this.plugin.settings.retentionKeepLastN = num;
+							settings.retentionKeepLastN = num;
 							await this.plugin.saveSettings();
 						}
 					})
@@ -180,11 +264,11 @@ export class BackupSettingTab extends PluginSettingTab {
 			.addText((text) =>
 				text
 					.setPlaceholder("30")
-					.setValue(String(this.plugin.settings.retentionKeepDays))
+					.setValue(String(settings.retentionKeepDays))
 					.onChange(async (value) => {
 						const num = parseInt(value, 10);
 						if (!isNaN(num) && num >= 0) {
-							this.plugin.settings.retentionKeepDays = num;
+							settings.retentionKeepDays = num;
 							await this.plugin.saveSettings();
 						}
 					})
