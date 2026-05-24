@@ -27,7 +27,7 @@ jobs:
           subject-path: main.js
 
       - name: Generate styles.css artifact attestation
-        if: ${{ hashFiles('styles.css') != '' }}
+        if: hashFiles('styles.css') != ''
         uses: actions/attest-build-provenance@v3
         with:
           subject-path: styles.css
