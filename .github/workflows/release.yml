@@ -26,7 +26,7 @@ jobs:
         with:
           subject-path: |
             main.js
-            styles.css
+            *.css
 
       - name: Create Release
         id: create_release
