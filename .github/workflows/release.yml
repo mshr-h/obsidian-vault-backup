@@ -21,13 +21,10 @@ jobs:
       - run: npm install
       - run: npm run build
 
-      - name: Generate artifact attestations
+      - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v3
         with:
-          subject-path: |
-            main.js
-            styles.css
-            manifest.json
+          subject-path: main.js
 
       - name: Create Release
         id: create_release
