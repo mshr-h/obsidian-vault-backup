@@ -1,7 +1,7 @@
 import { Notice } from "obsidian";
-import * as path from "path";
+import * as path from "node:path";
 import type { BackupSettings } from "./types";
-import { getBackupFolderPath, getCurrentOsLabel } from "./types";
+import { getBackupFolderPath, getCurrentOsLabel } from "./platform";
 import { parseTemplate } from "./template";
 import { createZipBackup } from "./zip";
 import { applyRetentionPolicy } from "./retention";

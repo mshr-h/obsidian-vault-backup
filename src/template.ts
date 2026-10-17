@@ -14,7 +14,8 @@ function sanitizeFilename(str: string): string {
  */
 export function parseTemplate(template: string, vaultName: string): string {
 	let result = template;
-	const now = moment();
+	// The host exposes Moment as a namespace type; static helpers work with TS 6.
+	const now = moment.utc().local();
 
 	// Replace {{vault}}
 	result = result.replace(/\{\{vault\}\}/g, sanitizeFilename(vaultName));

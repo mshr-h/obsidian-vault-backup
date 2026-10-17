@@ -1,6 +1,6 @@
 import esbuild from "esbuild";
-import process from "process";
-import { builtinModules } from 'node:module';
+import process from "node:process";
+import { builtinModules } from "node:module";
 
 const banner =
 `/*
@@ -32,8 +32,9 @@ const context = await esbuild.context({
 		"@lezer/highlight",
 		"@lezer/lr",
 		...builtinModules],
+	platform: "node",
 	format: "cjs",
-	target: "es2018",
+	target: "node18",
 	logLevel: "info",
 	sourcemap: prod ? false : "inline",
 	treeShaking: true,
@@ -42,8 +43,11 @@ const context = await esbuild.context({
 });
 
 if (prod) {
-	await context.rebuild();
-	process.exit(0);
+	try {
+		await context.rebuild();
+	} finally {
+		await context.dispose();
+	}
 } else {
 	await context.watch();
 }

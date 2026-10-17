@@ -67,6 +67,8 @@ Access settings via **Settings → Plugin Options → Vault Backup**:
 
 ## Installation
 
+Requires Obsidian Desktop 1.4.5 or newer and an installer containing Node.js 18 or newer (Electron 25+). [Obsidian 1.4.5 updated the installer to Electron 25](https://obsidian.md/changelog/2023-08-31-desktop-v1.4.5/). If the app was updated using an older installer, download and reinstall Obsidian to update the embedded runtime. Version 0.3.0 raises this requirement for Archiver 8.
+
 ### Manual Installation
 
 1. Download the latest release files (`main.js`, `manifest.json`, `styles.css`)
@@ -87,14 +89,14 @@ Access settings via **Settings → Plugin Options → Vault Backup**:
 
 ### Prerequisites
 
-- Node.js v16 or higher
-- npm or yarn
+- Node.js 22.13+ in the 22.x series, or Node.js 24+ (Node.js 24 LTS recommended)
+- npm
 
 ### Setup
 
 ```bash
 # Install dependencies
-npm install
+npm ci
 
 # Development mode (watch for changes)
 npm run dev
@@ -105,6 +107,12 @@ npm run build
 # Lint code
 npm run lint
 
+# Run regression tests
+npm test
+
+# Lint, test, type-check, and build
+npm run check
+
 # Bump version and release it to github
 make release VERSION=0.1.0
 ```
@@ -113,16 +121,29 @@ make release VERSION=0.1.0
 
 ```
 src/
-  main.ts              # Plugin entry point and lifecycle
-  settings.ts          # Settings interface and UI
-  types.ts             # TypeScript type definitions
-  backup.ts            # Backup execution and concurrency control
-  zip.ts               # ZIP file creation with atomic operations
-  template.ts          # Filename template parsing
-  retention.ts         # Backup retention management
+  main.ts                 # Plugin lifecycle and Obsidian integration
+  commands.ts             # Stable command and ribbon registrations
+  settings.ts             # Default settings
+  types.ts                # Shared data types
+  profiles.ts             # Profile normalization and legacy migration
+  profile-manager.ts      # Profile selection, editing, and persistence
+  platform.ts             # Platform-specific backup paths
+  backup.ts               # Backup execution and concurrency control
+  zip.ts                  # Streaming ZIP creation and failure cleanup
+  exclusions.ts           # Vault-relative exclusion matching
+  template.ts             # Filename template parsing
+  retention.ts            # Backup retention management
   ui/
+    settings-tab.ts       # Backup configuration UI
+    profile-settings.ts   # Profile configuration UI
     backup-list-modal.ts  # Backup list UI
+scripts/test.mjs           # Bundle tests and run the Node.js test runner
+tests/                     # Profile, ZIP, backup, and retention regressions
 ```
+
+Tests use temporary fixture directories, an Obsidian API stub, and an independent ZIP reader. They do not read or modify your vault. CI runs `npm run check` on Node.js 22 and 24; release builds use `npm ci` with the same checks.
+
+Obsidian and the test tools are development dependencies; Archiver is bundled into `main.js`. TypeScript stays on 6.0 because [typescript-eslint's supported range](https://typescript-eslint.io/users/dependency-versions/) excludes 7.x. `@types/node` tracks the minimum plugin runtime (18), while the development tools use Node.js 22 or 24+. The lint plugin's nested Moment dependency is overridden to the patched version used by the tests. The settings UI retains APIs supported before Obsidian 1.13.
 
 ## How It Works
 
@@ -133,11 +154,13 @@ src/
 3. **Atomic rename**: Renames temp file to final `.zip` filename
 4. **Retention cleanup**: Removes old backups according to retention policy
 
-This approach ensures backups are never corrupted, even if the process is interrupted.
+The final ZIP is published only after the archive and output stream complete. A failed or interrupted run can leave a temporary file, but does not replace an existing final backup with a partial archive. Read failures abort the backup instead of silently omitting files.
 
 ### Excluded Paths
 
 Excluded paths are matched relative to the vault root. Enter one file or folder per line in settings. For example, `private.md` excludes only that file, while `attachments` excludes the folder and everything inside it. Leading slashes, trailing slashes, and Windows backslashes are normalized automatically. Glob patterns and regular expressions are not supported.
+
+When the backup folder is inside the vault, that folder is excluded automatically to avoid recursively archiving previous backups. When saving directly at the vault root, only the current temporary file and target ZIP are automatically excluded; use a dedicated backup folder to keep older archives out of future backups.
 
 ### Concurrency Control
 

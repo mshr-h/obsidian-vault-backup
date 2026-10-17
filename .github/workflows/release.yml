@@ -16,10 +16,11 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: 'latest'
+          node-version: '24.x'
+          cache: 'npm'
 
-      - run: npm install
-      - run: npm run build
+      - run: npm ci
+      - run: npm run check
 
       - name: Generate artifact attestations
         uses: actions/attest-build-provenance@v3
