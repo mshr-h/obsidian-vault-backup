@@ -141,7 +141,7 @@ scripts/test.mjs           # Bundle tests and run the Node.js test runner
 tests/                     # Profile, ZIP, backup, and retention regressions
 ```
 
-Tests use temporary fixture directories, an Obsidian API stub, and an independent ZIP reader. They do not read or modify your vault. CI runs `npm run check` on Node.js 22 and 24; release builds use `npm ci` with the same checks.
+Tests use temporary fixture directories, an Obsidian API stub, and an independent ZIP reader. They do not read or modify your vault. Each production build also loads the generated `main.js` in an isolated directory with only an Obsidian host stub, so missing bundled dependencies fail the build. CI runs `npm run check` on Node.js 22 and 24; release builds use `npm ci` with the same checks.
 
 Obsidian and the test tools are development dependencies; Archiver is bundled into `main.js`. TypeScript stays on 6.0 because [typescript-eslint's supported range](https://typescript-eslint.io/users/dependency-versions/) excludes 7.x. `@types/node` tracks the minimum plugin runtime (18), while the development tools use Node.js 22 or 24+. The lint plugin's nested Moment dependency is overridden to the patched version used by the tests. The settings UI retains APIs supported before Obsidian 1.13.
 

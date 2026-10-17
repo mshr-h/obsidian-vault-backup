@@ -1,6 +1,5 @@
 import esbuild from "esbuild";
 import process from "node:process";
-import { builtinModules } from "node:module";
 
 const banner =
 `/*
@@ -31,7 +30,9 @@ const context = await esbuild.context({
 		"@lezer/common",
 		"@lezer/highlight",
 		"@lezer/lr",
-		...builtinModules],
+	],
+	// Node built-ins are external automatically. Listing them in `external` also
+	// excludes npm shims such as `process/`, which must be bundled for Obsidian.
 	platform: "node",
 	format: "cjs",
 	target: "node18",
