@@ -1,4 +1,3 @@
-import { Platform } from "obsidian";
 import { DEFAULT_SETTINGS } from "./settings";
 import type { BackupProfile, BackupSettings, VaultBackupSettings } from "./types";
 import { normalizeExcludedPaths } from "./exclusions";
@@ -9,7 +8,8 @@ export type LoadedSettingsData = Partial<
 
 export function normalizeLoadedData(
 	loadedData: LoadedSettingsData | undefined,
-	deviceName: string
+	deviceName: string,
+	isWindows: boolean
 ): VaultBackupSettings {
 	if (Array.isArray(loadedData?.profiles)) {
 		const profiles = loadedData.profiles
@@ -48,7 +48,7 @@ export function normalizeLoadedData(
 		!loadedData.backupFolderPathWindows &&
 		!loadedData.backupFolderPathUnix
 	) {
-		if (Platform.isWin) {
+		if (isWindows) {
 			migratedSettings.backupFolderPathWindows = loadedData.backupFolderPath;
 		} else {
 			migratedSettings.backupFolderPathUnix = loadedData.backupFolderPath;
@@ -114,11 +114,11 @@ function normalizeProfile(
 }
 
 function normalizeSettings(settings: Partial<BackupSettings>): BackupSettings {
-	const normalized = Object.assign(
+	const normalized: BackupSettings = Object.assign(
 		{},
 		DEFAULT_SETTINGS,
 		settings
-	) as BackupSettings;
+	);
 
 	normalized.excludedPaths = normalizeExcludedPaths(
 		Array.isArray(normalized.excludedPaths) ? normalized.excludedPaths : []
